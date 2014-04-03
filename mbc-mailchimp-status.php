@@ -62,10 +62,10 @@ catch (Exception $e) {
 // Callback to handle messages received by this consumer.
 $callback = function($payload) {
   // Producer serialized the data before publishing the message to the broker.
-  $payload = unserialize($payload);
+  $payloadBody = unserialize($payload->body);
 
   // Mailchimp error details place the email in a nested email array.
-  if (!isset($payload['email']['email'])) {
+  if (!isset($payloadBody['email']['email'])) {
     echo "Email not received in payload\n";
 
     // Send acknowledgement in these cases where data is missing because we're
@@ -74,15 +74,15 @@ $callback = function($payload) {
     return;
   }
 
-  if (!isset($payload['code'])) {
+  if (!isset($payloadBody['code'])) {
     echo "Status code not received in payload\n";
     sendAck($payload);
     return;
   }
 
   // Package fields to POST to the user API
-  $email = $payload['email']['email'];
-  $mailchimpStatus = $payload['code'];
+  $email = $payloadBody['email']['email'];
+  $mailchimpStatus = $payloadBody['code'];
   $postFields = array(
     'email' => $email,
     'mailchimp_status' => $mailchimpStatus,
@@ -102,10 +102,10 @@ $callback = function($payload) {
   curl_close($ch);
 
   if ($result == TRUE) {
-    echo "Updated Mailchimp status for email: $email\n";
+    echo "Updated Mailchimp status ($mailchimpStatus) for email: $email\n";
   }
   else {
-    echo "FAILED to update Mailchimp status for email: $email\n";
+    echo "FAILED to update Mailchimp status ($mailchimpStatus) for email: $email\n";
   }
 
   // Send acknowledgement
