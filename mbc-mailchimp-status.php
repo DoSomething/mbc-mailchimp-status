@@ -44,6 +44,7 @@ $config = array(
       'durable' => getenv('MB_USER_MAILCHIMP_STATUS_QUEUE_DURABLE'),
       'exclusive' => getenv('MB_USER_MAILCHIMP_STATUS_QUEUE_EXCLUSIVE'),
       'auto_delete' => getenv('MB_USER_MAILCHIMP_STATUS_QUEUE_AUTO_DELETE'),
+      'bindingKey' => getenv('MB_USER_MAILCHIMP_STATUS_QUEUE_BINDING_KEY'),
     ),
   ),
 );
