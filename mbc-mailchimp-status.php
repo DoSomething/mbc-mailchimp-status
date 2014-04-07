@@ -71,13 +71,13 @@ $callback = function($payload) {
 
     // Send acknowledgement in these cases where data is missing because we're
     // not going to actually ever be able to do anything with them.
-    sendAck($payload);
+    MessageBroker::sendAck($payload);
     return;
   }
 
   if (!isset($payloadBody['code'])) {
     echo "Status code not received in payload\n";
-    sendAck($payload);
+    MessageBroker::sendAck($payload);
     return;
   }
 
@@ -104,32 +104,16 @@ $callback = function($payload) {
 
   if ($result == TRUE) {
     echo "Updated Mailchimp status ($mailchimpStatus) for email: $email\n";
+
+    // Only send acknowledgement on success
+    MessageBroker::sendAck($payload);
   }
   else {
     echo "FAILED to update Mailchimp status ($mailchimpStatus) for email: $email\n";
   }
-
-  // Send acknowledgement
-  sendAck($payload);
 };
 
 // Start consuming messages
 $mb->consumeMessage($callback);
-
-
-/**
- * Helper functions.
- */
-
-/**
- * Sends an acknowledgement back to the message broker so the message can be
- * removed from the queue.
- *
- * @param $payload
- *   The payload received in the consume callback.
- */
-function sendAck($payload) {
-  $payload->delivery_info['channel']->basic_ack($payload->delivery_info['delivery_tag']);
-}
 
 ?>
