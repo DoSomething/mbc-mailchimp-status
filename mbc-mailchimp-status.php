@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 use PhpAmqpLib\Connection\AMQPConnection;
+use DoSomething\MBStatTracker\StatHat;
 
 require('mb-secure-config.inc');
 require('mb-config.inc');
@@ -38,7 +39,7 @@ $config = array(
 
   // Queue config
   'queue' => array(
-    'userMailchimpStatus' => array(
+    array(
       'name' => getenv('MB_USER_MAILCHIMP_STATUS_QUEUE'),
       'passive' => getenv('MB_USER_MAILCHIMP_STATUS_QUEUE_PASSIVE'),
       'durable' => getenv('MB_USER_MAILCHIMP_STATUS_QUEUE_DURABLE'),
@@ -62,12 +63,17 @@ catch (Exception $e) {
 
 // Callback to handle messages received by this consumer.
 $callback = function($payload) {
+  // StatHat tracking setup.
+  $statHat = new StatHat(getenv('STATHAT_EZKEY'), 'mbc-mailchimp-status:');
+  $statHat->setIsProduction(getenv('USE_STAT_TRACKING') ? getenv('USE_STAT_TRACKING') : FALSE);
+
   // Producer serialized the data before publishing the message to the broker.
   $payloadBody = unserialize($payload->body);
 
   // Mailchimp error details place the email in a nested email array.
   if (!isset($payloadBody['email']['email'])) {
     echo "Email not received in payload\n";
+    $statHat->addStatName('no email in payload');
 
     // Send acknowledgement in these cases where data is missing because we're
     // not going to actually ever be able to do anything with them.
@@ -77,6 +83,8 @@ $callback = function($payload) {
 
   if (!isset($payloadBody['code'])) {
     echo "Status code not received in payload\n";
+    $statHat->addStatName('no status code in payload');
+
     MessageBroker::sendAck($payload);
     return;
   }
@@ -104,13 +112,18 @@ $callback = function($payload) {
 
   if ($result == TRUE) {
     echo "Updated Mailchimp status ($mailchimpStatus) for email: $email\n";
+    $statHat->addStatName('success');
 
     // Only send acknowledgement on success
     MessageBroker::sendAck($payload);
   }
   else {
     echo "FAILED to update Mailchimp status ($mailchimpStatus) for email: $email\n";
+    $statHat->addStatName('update failed');
   }
+
+  // Report to StatHat. Only report a single instance of the event.
+  $statHat->reportCount(1);
 };
 
 // Start consuming messages
