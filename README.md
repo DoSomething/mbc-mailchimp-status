@@ -13,3 +13,7 @@ This is a Message Broker consumer that handles Mailchimp user status updates.
 #### Start the Consumer
 - Install dependencies: `composer install`
 - Run the consumer: `php mbc-mailchimp-status.php`
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/DoSomething/mbc-mailchimp-status/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
